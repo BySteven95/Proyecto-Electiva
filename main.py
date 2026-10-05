@@ -32,22 +32,43 @@ st.sidebar.header("1. Carga de Datos")
 @st.cache_data(ttl=3600, show_spinner="Descargando datos...")
 def load_and_clean_data(limit=10000):
     url = f"https://www.datos.gov.co/resource/7wm8-w5ad.json?$limit={limit}"
-    response = requests.get(url)
     
-    if response.status_code == 200:
-        df = pd.DataFrame(response.json())
-        df = df.dropna()
+    try:
+        # Añadimos un timeout para evitar que se quede colgado
+        response = requests.get(url, timeout=20)
         
-        if "a_o" in df.columns:
-            df["a_o"] = pd.to_numeric(df["a_o"], errors="coerce")
-        if "cant_extranjeros_no_residentes" in df.columns:
-            df["cant_extranjeros_no_residentes"] = pd.to_numeric(df["cant_extranjeros_no_residentes"], errors="coerce")
+        if response.status_code == 200:
+            df = pd.DataFrame(response.json())
             
-        if "mes" in df.columns:
-            df["mes"] = df["mes"].astype(str).str.strip()
+            if df.empty:
+                st.error("La API devolvió un JSON vacío.")
+                return df
+                
+            # Convertir columnas sin borrar nulos masivamente todavía
+            if "a_o" in df.columns:
+                df["a_o"] = pd.to_numeric(df["a_o"], errors="coerce")
+            if "cant_extranjeros_no_residentes" in df.columns:
+                df["cant_extranjeros_no_residentes"] = pd.to_numeric(df["cant_extranjeros_no_residentes"], errors="coerce")
+                
+            if "mes" in df.columns:
+                df["mes"] = df["mes"].astype(str).str.strip()
+                
+            # Eliminar nulos SOLO en la variable objetivo para no perder todo el dataset
+            if "cant_extranjeros_no_residentes" in df.columns:
+                df = df.dropna(subset=["cant_extranjeros_no_residentes"])
+                
+            # Para el resto de columnas, rellenamos los nulos categóricos con "Desconocido"
+            df = df.fillna("Desconocido")
             
-        return df.dropna()
-    return pd.DataFrame()
+            return df
+            
+        else:
+            st.error(f"Error de conexión con la API: Código {response.status_code}")
+            return pd.DataFrame()
+            
+    except requests.exceptions.RequestException as e:
+        st.error(f"El servidor tardó demasiado o rechazó la conexión: {e}")
+        return pd.DataFrame()
 
 records_limit = st.sidebar.number_input("Límite de registros a descargar:", min_value=500, max_value=50000, value=10000, step=500)
 df = load_and_clean_data(limit=records_limit)
