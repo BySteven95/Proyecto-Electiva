@@ -187,7 +187,7 @@ with tab1:
             if numeric_features:
                 transformers.append(("num", "passthrough", numeric_features))
             if categorical_features:
-                transformers.append(("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), categorical_features))
+                transformers.append(("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features))
                 
             preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
             
