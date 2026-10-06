@@ -192,7 +192,7 @@ with tab1:
             preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
             
             ModelClass = LGBMRegressor if is_numeric_target else LGBMClassifier
-            model = ModelClass(n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth, random_state=42, n_jobs=-1)
+            model = ModelClass(n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth, random_state=42, n_jobs=2)
             
             pipeline = Pipeline([("preprocessor", preprocessor), ("model", model)])
             pipeline.fit(X_train, y_train)
